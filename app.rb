@@ -8,6 +8,8 @@ require_relative './lib/user'
 require_relative './lib/request'
 require_relative './lib/database_connection_setup'
 
+p ENV['RACK_ENV']
+
 class Dreambnb < Sinatra::Base
   enable :sessions
   register Sinatra::Flash
@@ -63,72 +65,28 @@ class Dreambnb < Sinatra::Base
     erb :spaces
   end
 
-  post '/spaces' do
-    user = User.get(session[:id])
-    Listing.create(name: params[:name], description: params[:description], price: params[:price], available_from: params[:available_from], available_until: params[:available_until], user: user)
+    get '/' do
+        "hello"
+    end
 
-    redirect '/spaces'
-  end
+    # post '/spaces' do
+    #   # User.create(email: "Francesca@gmail.com", password: "secretinit"
+    #   Listing.create(name: "Ecological Artistic Retreat", description: "For a lovely getaway",
+    #   price: "£23")
+    #   erb :spaces
+    # end
 
-  get '/spaces/new' do
-    erb :new
-  end
+    get '/spaces' do
+      @listings = Listing.all
+      erb :spaces
+    end
 
-  get '/spaces/:id' do
-    @listing = Listing.get(params[:id])
+    post '/spaces' do
+      @listings = Listing.create(name: params[:name], description: params[:description], price: params[:price], available_from: params[:available_from], available_until: params[:available_until])
+      redirect '/spaces'
+    end
 
-    erb :space
-  end
-
-  post '/requests' do
-    user = User.get(session[:id])
-    listing = Listing.get(params[:prop_id])
-
-    Request.create(
-      arrival_date: params[:arrival_date],
-      user: user,
-      listing: listing
-    )
-
-    flash[:notice] = 'Thanks for your request. The owner has been notified.'
-    redirect '/requests'
-  end
-
-  get '/requests' do
-    @requests_made = Request.all(user_id: session[:id])
-    @user_spaces = Listing.all(user_id: session[:id])
-    erb :requests
-  end 
-
-  get '/requests/:id' do 
-    @request_id = params[:id]
-    request = Request.get(params[:id])
-    space = Listing.get(request.listing_prop_id)
-    user = User.get(request.user_id)
-    @other_requests_for_space = Request.all(listing_prop_id: space.prop_id) -  Request.all(id: request.id)
-    @email = user.email
-    @name = space.name
-    @date = request.arrival_date.strftime(fmt='%d/%m/%Y')  
-  
-    erb :request
-  end
-
-  post '/request/:id/confirm' do
-    request_confirm = Request.get(params[:id])
-    request_confirm.update(:confirm => true)
-    same_day_requests = Request.all(arrival_date: request_confirm.arrival_date) - request_confirm
-    same_day_requests.each do |same_day_request|
-      same_day_request.update(confirm: false)
-    end 
-
-    redirect '/requests' 
-  end
-
-  post '/request/:id/deny' do
-    request_deny = Request.get(params[:id])
-    request_deny.update(confirm: false)
-
-
-    redirect '/requests' 
-  end
+    get '/spaces/new' do
+      erb :new
+    end
 end
